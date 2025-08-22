@@ -1,0 +1,56 @@
+# Core Framework
+fastapi
+uvicorn
+
+# Database & Cache
+psycopg2-binary
+redis
+sqlalchemy
+alembic
+
+# Vector Database
+chromadb==0.5.23
+sentence-transformers
+
+# Background Tasks
+celery
+
+# CrewAI & LLM
+crewai
+crewai-tools
+google-generativeai
+langchain-google-genai
+openai
+anthropic
+langchain
+langchain-community
+
+# Document Processing
+python-multipart
+PyMuPDF
+python-docx
+
+# Data Processing
+pandas
+numpy
+
+# Testing
+pytest
+httpx
+pytest-asyncio>=0.20,<1
+
+# Utilities
+python-dotenv
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-slugify
+
+# Deployment
+gunicorn
+
+# Development
+black
+isort
+flake8
