@@ -1,0 +1,27 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "celery",
+    "title": "Celery Overview",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "Celery Tasks Processed",
+        "targets": [
+          {"expr": "sum(celery_task_sent_total) by (name)", "refId": "A"}
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      },
+      {
+        "type": "graph",
+        "title": "DLQ Size",
+        "targets": [
+          {"expr": "celery_dlq_size", "refId": "B"}
+        ],
+        "gridPos": {"h": 6, "w": 24, "x": 0, "y": 8}
+      }
+    ],
+    "schemaVersion": 30,
+    "version": 0
+  }
+}

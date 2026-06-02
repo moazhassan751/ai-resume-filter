@@ -1,0 +1,23 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": null,
+    "title": "HTTP Requests",
+    "panels": [
+      {
+        "type": "graph",
+        "title": "HTTP Requests Total",
+        "targets": [
+          {
+            "expr": "http_requests_total",
+            "legendFormat": "{{method}} {{path}} {{status}}",
+            "refId": "A"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0}
+      }
+    ],
+    "schemaVersion": 30,
+    "version": 0
+  }
+}

@@ -1,0 +1,56 @@
+# Version control and local editor state.
+.git
+.gitignore
+.vscode
+.idea
+
+# Python bytecode and test/cache artifacts.
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local environments and temporary build outputs.
+venv/
+.venv/
+env/
+build/
+dist/
+*.egg-info/
+
+# Large datasets and derived artifacts should never enter the Docker build context.
+Resume/
+Resume.csv
+data/
+data/*.csv
+data/cache/
+data/uploads/
+data/exports/
+data/models/
+data/vector_db/
+vector_db/
+models/
+CareerCorpus  A Comprehensive Dataset of Annotated/
+*.sqlite3
+*.db
+*.ckpt
+*.pt
+*.pth
+
+# Frontend install/build artifacts.
+frontend/node_modules/
+frontend/.next/
+frontend/.vercel/
+frontend/.vercel_build_output/
+
+# Tooling outputs and archives.
+.cache/
+wheels/
+*.tgz
+*.tar
+*.log
+
+# Secrets should never be baked into images.
+.env
+.env.*

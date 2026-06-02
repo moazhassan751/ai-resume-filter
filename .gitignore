@@ -1,0 +1,28 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Virtual envs
+.env/
+venv/
+.env
+
+# Ignore environment files with real secrets; keep example files checked in
+.env.development
+.env.production
+.env.local
+.env.*.local
+
+# Keep example env files in repo
+!.env.production.example
+
+# Data and local artifacts
+/data/
+.DS_Store
+
+# Node / frontend
+node_modules/
+.next/
+/build/
+

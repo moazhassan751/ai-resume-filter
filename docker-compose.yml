@@ -1,0 +1,315 @@
+services:
+  # Production API: no bind mounts, restart policy enabled, health-checked.
+  backend:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: ai_resume_filter/Dockerfile
+    environment:
+      # Application runtime values. The existing app still uses MongoDB for user/data persistence.
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in your production environment}
+      MONGODB_URL: ${MONGODB_URL:-mongodb://mongo:27017}
+      MONGODB_DB: ${MONGODB_DB:-talentlens}
+      MODEL_PATH: ${MODEL_PATH:-/app/data/models/model.pkl}
+      VECTORIZER_PATH: ${VECTORIZER_PATH:-/app/data/models/vectorizer.pkl}
+      CHROMA_PERSIST_DIRECTORY: ${CHROMA_PERSIST_DIRECTORY:-/app/data/vector_db/chroma}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/data/uploads}
+      EXPORT_DIR: ${EXPORT_DIR:-/app/data/exports}
+      CACHE_DIR: ${CACHE_DIR:-/app/data/cache}
+      SKIP_HF_DATASET: ${SKIP_HF_DATASET:-1}
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-120}
+      PORT: ${BACKEND_PORT:-8000}
+      # Postgres is provisioned for production readiness and future relational use.
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://talentlens:${POSTGRES_PASSWORD:-talentlens}@postgres:5432/${POSTGRES_DB:-talentlens}}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      # Use Python stdlib to avoid adding extra runtime packages just for health checks.
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    volumes:
+      # Persistent application state for uploads, exports, caches, and vector storage.
+      - backend_uploads:/app/data/uploads
+      - backend_exports:/app/data/exports
+      - backend_cache:/app/data/cache
+
+  # Production frontend: built once, served with next start, no source bind mount.
+  frontend:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    environment:
+      # Public API URL is injected at build/runtime for browser-side requests.
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      PORT: ${FRONTEND_PORT:-3000}
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      # Keep the check lightweight and avoid bringing in curl/wget just for probing.
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:3000').then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))\""]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  # Celery worker for async training jobs and background processing.
+  worker:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: ai_resume_filter/Dockerfile
+    command: celery -A app.core.celery_app.celery_app worker -l info --concurrency=${CELERY_CONCURRENCY:-2}
+    environment:
+      SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in your production environment}
+      MONGODB_URL: ${MONGODB_URL:-mongodb://mongo:27017}
+      MONGODB_DB: ${MONGODB_DB:-talentlens}
+      MODEL_PATH: ${MODEL_PATH:-/app/data/models/model.pkl}
+      VECTORIZER_PATH: ${VECTORIZER_PATH:-/app/data/models/vectorizer.pkl}
+      CHROMA_PERSIST_DIRECTORY: ${CHROMA_PERSIST_DIRECTORY:-/app/data/vector_db/chroma}
+      UPLOAD_DIR: ${UPLOAD_DIR:-/app/data/uploads}
+      EXPORT_DIR: ${EXPORT_DIR:-/app/data/exports}
+      CACHE_DIR: ${CACHE_DIR:-/app/data/cache}
+      SKIP_HF_DATASET: ${SKIP_HF_DATASET:-1}
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    volumes:
+      # Worker needs the same persistent data paths as the backend.
+      - backend_uploads:/app/data/uploads
+      - backend_exports:/app/data/exports
+      - backend_cache:/app/data/cache
+
+  # Development API service: bind mount and reload enabled only under the dev profile.
+  backend-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: ai_resume_filter/Dockerfile
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    working_dir: /workspace/ai_resume_filter
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+      MONGODB_URL: ${MONGODB_URL:-mongodb://mongo:27017}
+      MONGODB_DB: ${MONGODB_DB:-talentlens}
+      MODEL_PATH: /workspace/data/models/model.pkl
+      VECTORIZER_PATH: /workspace/data/models/vectorizer.pkl
+      CHROMA_PERSIST_DIRECTORY: /workspace/data/vector_db/chroma
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SKIP_HF_DATASET: "1"
+    volumes:
+      - .:/workspace
+    ports:
+      - "8000:8000"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Development frontend service: next dev and source bind mount are limited to the dev profile.
+  frontend-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    command: >-
+      sh -c "if [ ! -x node_modules/.bin/next ]; then npm ci; fi &&
+      npm run dev -- --hostname 0.0.0.0 --port 3000"
+    working_dir: /workspace/frontend
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    volumes:
+      - .:/workspace
+      - frontend_node_modules:/workspace/frontend/node_modules
+    ports:
+      - "3001:3000"
+    depends_on:
+      - backend-dev
+
+  # Development worker mirrors the production worker but keeps the source bind mount for local iteration.
+  worker-dev:
+    profiles: ["dev"]
+    build:
+      context: .
+      dockerfile: ai_resume_filter/Dockerfile
+    command: celery -A app.core.celery_app.celery_app worker -l info --concurrency=1
+    working_dir: /workspace/ai_resume_filter
+    environment:
+      SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
+      MONGODB_URL: ${MONGODB_URL:-mongodb://mongo:27017}
+      MONGODB_DB: ${MONGODB_DB:-talentlens}
+      MODEL_PATH: /workspace/data/models/model.pkl
+      VECTORIZER_PATH: /workspace/data/models/vectorizer.pkl
+      CHROMA_PERSIST_DIRECTORY: /workspace/data/vector_db/chroma
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      SKIP_HF_DATASET: "1"
+    volumes:
+      - .:/workspace
+    depends_on:
+      - redis
+      - mongo
+
+  # Redis backs Celery and can also be used for short-lived caching.
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    volumes:
+      - redis_data:/data
+
+  # Flower dashboard for Celery monitoring
+  flower:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: ai_resume_filter/Dockerfile
+    command: celery -A app.core.celery_app.celery_app flower --port=5555 --broker=redis://redis:6379/0
+    ports:
+      - "5555:5555"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+
+  # Prometheus for scraping metrics from backend and Flower
+  prometheus:
+    profiles: ["prod"]
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+      flower:
+        condition: service_healthy
+      celery-exporter:
+        condition: service_healthy
+
+  # Grafana for dashboards
+  grafana:
+    profiles: ["prod"]
+    image: grafana/grafana:9.5
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    restart: unless-stopped
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+  # Celery Prometheus exporter exposes worker metrics
+  celery-exporter:
+    profiles: ["prod"]
+    image: oliver006/celery-exporter:latest
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+    ports:
+      - "9404:9404"
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # DLQ consumer for inspecting and alerting on dead-lettered tasks
+  dlq-consumer:
+    profiles: ["prod"]
+    build:
+      context: .
+      dockerfile: ai_resume_filter/Dockerfile
+    command: python -m app.utils.dlq_consumer
+    environment:
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_DLQ_KEY: ${CELERY_DLQ_KEY:-celery:dlq}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # Postgres is included for production deployment readiness and future relational persistence.
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-talentlens}
+      POSTGRES_USER: ${POSTGRES_USER:-talentlens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-talentlens}
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-talentlens} -d ${POSTGRES_DB:-talentlens}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # MongoDB remains in the stack because the existing application code still persists users and metrics there.
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD-SHELL", "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok' localhost:27017/test | grep 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  backend_uploads:
+  backend_exports:
+  backend_cache:
+  frontend_node_modules:
+  redis_data:
+  postgres_data:
+  mongo_data:
+  prometheus_data:
+  grafana_data:
+
