@@ -1,16 +1,20 @@
-"""
-API v1 router configuration
-"""
+"""API v1 router — aggregates auth, model, data, search, and agent sub-routers."""
 from fastapi import APIRouter
+
+from app.api.v1 import agents, analytics, auth, data, model, search, rag, ranking
 
 api_router = APIRouter()
 
-# Import and include sub-routers here
-# from .endpoints import resumes, analysis, users
-# api_router.include_router(resumes.router, prefix="/resumes", tags=["resumes"])
-# api_router.include_router(analysis.router, prefix="/analysis", tags=["analysis"])
-# api_router.include_router(users.router, prefix="/users", tags=["users"])
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(model.router, prefix="/model", tags=["model"])
+api_router.include_router(data.router, prefix="/data", tags=["data"])
+api_router.include_router(search.router, tags=["search"])
+api_router.include_router(agents.router, prefix="/agents", tags=["agents"])
+api_router.include_router(rag.router, tags=["rag"])
+api_router.include_router(ranking.router, tags=["ranking"])
+api_router.include_router(analytics.router, tags=["analytics"])
 
-@api_router.get("/")
+
+@api_router.get("/", tags=["root"])
 async def api_root():
-    return {"message": "AI Resume Filter API v1"}
+    return {"message": "TalentLens AI API v1"}

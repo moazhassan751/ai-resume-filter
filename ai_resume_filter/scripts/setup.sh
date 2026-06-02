@@ -1,30 +1,35 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e
 
-# AI Resume Filter - Setup Script
-
-echo "Setting up AI Resume Filter..."
+echo "=== TalentLens AI — Setup ==="
 
 # Create virtual environment
 python -m venv venv
-
-# Activate virtual environment
 source venv/bin/activate
 
-# Upgrade pip
 pip install --upgrade pip
+pip install -r ai_resume_filter/requirements.txt
 
-# Install dependencies
-pip install -r requirements.txt
+# Create required directories
+mkdir -p data/{cache/tasks,models,vector_db/chroma,uploads,exports}
 
-# Create necessary directories
-mkdir -p ai_resume_filter/data/uploads
-mkdir -p ai_resume_filter/data/vector_db/chroma
-mkdir -p ai_resume_filter/data/exports
-
-# Copy environment template
+# Copy env template if needed
 if [ ! -f ".env" ]; then
-    cp .env.example .env
-    echo "Created .env file from template. Please update it with your configuration."
+  cp .env.example .env 2>/dev/null || cat > .env << 'ENV'
+SECRET_KEY=change-me-in-production
+MONGODB_URL=mongodb://localhost:27017
+MONGODB_DB=talentlens
+SKIP_HF_DATASET=0
+MODEL_PATH=./data/models/model.pkl
+VECTORIZER_PATH=./data/models/vectorizer.pkl
+ENV
+  echo "Created .env — update values before production use"
 fi
 
-echo "Setup complete! Run scripts/start.sh to start the application."
+echo "Setup complete. Next steps:"
+echo "  1. source venv/bin/activate"
+echo "  2. python scripts/normalize_datasets.py"
+echo "  3. python scripts/data_pipeline.py"
+echo "  4. python scripts/train_model.py"
+echo "  5. python scripts/index_embeddings.py"
+echo "  6. ./scripts/start.sh"

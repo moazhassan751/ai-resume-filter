@@ -1,8 +1,21 @@
 """
 Test configuration and fixtures
 """
+import warnings
+
 import pytest
 from fastapi.testclient import TestClient
+import os
+
+# Ensure required env vars for config validation during tests
+os.environ.setdefault("SECRET_KEY", "test-secret")
+os.environ.setdefault("ALLOWED_HOSTS", '["localhost", "testserver"]')
+
+warnings.filterwarnings(
+    "ignore",
+    message=r"Accessing the 'model_fields' attribute on the instance is deprecated.*",
+)
+
 from app.main import app
 
 

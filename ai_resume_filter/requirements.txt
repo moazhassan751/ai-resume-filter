@@ -29,10 +29,16 @@ langchain-community
 python-multipart
 PyMuPDF
 python-docx
+Pillow
+pytesseract
+pdf2image
 
-# Data Processing
+# Data Processing & Loading
 pandas
 numpy
+datasets>=2.16.0  # HuggingFace datasets library
+openpyxl>=3.1.0  # Excel file support
+pdfplumber>=0.10.0  # PDF text extraction
 
 # Testing
 pytest
@@ -46,6 +52,15 @@ pydantic-settings
 python-jose[cryptography]
 passlib[bcrypt]
 python-slugify
+jsonschema
+python-json-logger
+
+motor
+scikit-learn
+joblib
+argon2-cffi
+email-validator
+prometheus-client
 
 # Deployment
 gunicorn

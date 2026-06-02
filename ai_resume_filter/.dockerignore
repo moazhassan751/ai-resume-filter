@@ -1,0 +1,23 @@
+# Ignore Python cache and local environment artifacts for builds
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
+/.mypy_cache
+/.pytest_cache
+build/
+dist/
+*.egg-info/
+wheels/
+*.sqlite3
+*.db
+.cache/
+.venv/
+.vscode/
+.idea/
+node_modules/
+*.log
