@@ -35,6 +35,16 @@ class RAGService:
     def get_instance(cls) -> RAGService:
         if cls._instance is None:
             cls._instance = cls()
+        else:
+            # Refresh dependent services so tests that monkeypatch retriever/vector/embed
+            # functions pick up the patched instances without requiring a full process restart.
+            try:
+                cls._instance.retriever = get_retriever_service()
+                cls._instance.vector = get_vector_service()
+                cls._instance.embedding = get_embedding_service()
+            except Exception:
+                # If refreshing fails, keep existing instance to avoid breaking runtime.
+                logger.debug("Failed to refresh RAGService dependencies; continuing with existing ones")
         return cls._instance
 
     async def analyze(self, job_description: str, top_k: int = 10, requester: Optional[str] = None) -> Dict[str, Any]:

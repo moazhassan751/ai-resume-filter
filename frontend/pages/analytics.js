@@ -83,7 +83,7 @@ export default function AnalyticsPage() {
       label,
       precision: data[label]?.precision,
       recall: data[label]?.recall,
-      f1: data[label]?.f1-score,
+      f1: data[label]?.['f1-score'],
       support: data[label]?.support,
     }))
   }, [report, labels])

@@ -29,7 +29,7 @@ from .data_loader import DataLoader  # single source of parsing logic
 logger = logging.getLogger(__name__)
 
 _HERE = Path(__file__).resolve().parent
-_PROJECT_ROOT = _HERE.parents[2]
+_PROJECT_ROOT = _HERE.parents[1]
 
 
 class DataService:
@@ -44,7 +44,7 @@ class DataService:
         candidates = [cwd, _PROJECT_ROOT]
         selected = _PROJECT_ROOT
         for c in candidates:
-            if (c / "resume_data.csv").exists() or (c / "data").exists() or (c / "Resume").exists():
+            if (c / "resume_data.csv").exists() or (c / "Resume").exists() or (c / "resumes_dataset.jsonl").exists():
                 selected = c
                 break
         self._loader = DataLoader(base_path=selected)
@@ -184,9 +184,13 @@ class DataService:
 
         df: Optional[pd.DataFrame] = self.datasets.get("resume_csv")
         if df is None or df.empty:
-            raise RuntimeError(
-                "resume_csv dataset not loaded — cannot generate training split"
-            )
+            hf_data = self.datasets.get("resume_atlas_hf")
+            if hf_data and hf_data.get("records"):
+                df = pd.DataFrame(hf_data["records"])
+
+        if df is None or df.empty:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=503, detail="Training data unavailable")
 
         df = df.sample(frac=1, random_state=42).reset_index(drop=True)
 

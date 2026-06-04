@@ -11,12 +11,16 @@ from celery import Task
 logger = logging.getLogger(__name__)
 
 
+CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://localhost:6379/0")
+CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://localhost:6379/0")
+
+
 def _broker_url() -> str:
-    return os.environ.get("CELERY_BROKER_URL", "redis://redis:6379/0")
+    return CELERY_BROKER_URL
 
 
 def _result_backend() -> str:
-    return os.environ.get("CELERY_RESULT_BACKEND", "redis://redis:6379/1")
+    return CELERY_RESULT_BACKEND
 
 
 celery_app = Celery(
@@ -33,6 +37,7 @@ celery_app.conf.update(
     timezone="UTC",
     enable_utc=True,
     task_track_started=True,
+    result_backend_max_retries=3,
 )
 
 

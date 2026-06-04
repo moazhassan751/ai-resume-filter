@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 from app.services.bruteforce import record_failed, is_blocked, reset
 from app.services.user_service import UserAlreadyExistsError
 
-router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
+router = APIRouter(tags=["auth"])
 
 
 @router.post("/register", response_model=UserOut, status_code=201)
@@ -26,7 +26,7 @@ async def register(body: UserCreate) -> UserOut:
     except UserAlreadyExistsError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc))
 
-    return UserOut(email=created["email"], full_name=created.get("full_name"))
+    return UserOut(id=created.get("id"), email=created["email"], full_name=created.get("full_name"))
 
 
 @router.post("/token", response_model=Token)

@@ -24,7 +24,13 @@ def _load_training_frame():
 @celery_app.task(name="talentlens.train_baseline")
 def train_baseline_task() -> Dict[str, Any]:
     frame = _load_training_frame()
-    result = train_baseline(frame)
+    
+    TEXT_COLS = ["text", "Text", "Resume_str"]
+    LABEL_COLS = ["label", "category", "Category", "Domain"]
+    text_col = next((c for c in TEXT_COLS if c in frame.columns), "text")
+    label_col = next((c for c in LABEL_COLS if c in frame.columns), "category")
+    
+    result = train_baseline(frame, text_col=text_col, label_col=label_col)
     out_dir = PROJECT_ROOT / "data" / "models"
     artifacts = save_artifacts(
         result["model"],

@@ -1,14 +1,7 @@
 import Link from 'next/link'
 import Head from 'next/head'
 
-export default function Home() {
-  return (
-    <>
-      <Head>
-        <title>TalentLens AI — Recruitment Intelligence</title>
-      </Head>
-
-      <style>{`
+const landingStyles = `
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         body { background: #050912; color: #f0f4ff; font-family: 'DM Sans', sans-serif; }
         .hero { min-height: 100vh; display: flex; flex-direction: column; }
@@ -39,7 +32,16 @@ export default function Home() {
         .card h3 { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 10px; }
         .card p { color: #6b7280; font-size: 14px; line-height: 1.7; }
         footer { text-align: center; padding: 32px; border-top: 1px solid #0f1a30; color: #374151; font-size: 13px; }
-      `}</style>
+      `.replace(/\r\n/g, '\n')
+
+export default function Home() {
+  return (
+    <>
+      <Head>
+        <title>TalentLens AI — Recruitment Intelligence</title>
+      </Head>
+
+      <style suppressHydrationWarning>{landingStyles}</style>
 
       <div className="hero">
         <nav>

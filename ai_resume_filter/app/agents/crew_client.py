@@ -153,8 +153,6 @@ def run_crew_work(
         crew = Crew(agents=[agent], tasks=[task], process=Process.sequential, verbose=False)
 
         kickoff_kwargs = {"inputs": inputs}
-        if temperature is not None:
-            kickoff_kwargs["temperature"] = temperature
 
         start = time.perf_counter()
         try:

@@ -111,13 +111,16 @@ services:
     working_dir: /workspace/ai_resume_filter
     environment:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
-      MONGODB_URL: ${MONGODB_URL:-mongodb://mongo:27017}
+      MONGODB_URL: mongodb://mongo:27017
       MONGODB_DB: ${MONGODB_DB:-talentlens}
       MODEL_PATH: /workspace/data/models/model.pkl
       VECTORIZER_PATH: /workspace/data/models/vectorizer.pkl
       CHROMA_PERSIST_DIRECTORY: /workspace/data/vector_db/chroma
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UPLOAD_DIR: /workspace/data/uploads
+      EXPORT_DIR: /workspace/data/exports
+      CACHE_DIR: /workspace/data/cache
       SKIP_HF_DATASET: "1"
     volumes:
       - .:/workspace
@@ -146,7 +149,7 @@ services:
       - .:/workspace
       - frontend_node_modules:/workspace/frontend/node_modules
     ports:
-      - "3001:3000"
+      - "3500:3000"
     depends_on:
       - backend-dev
 
@@ -160,13 +163,16 @@ services:
     working_dir: /workspace/ai_resume_filter
     environment:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-key}
-      MONGODB_URL: ${MONGODB_URL:-mongodb://mongo:27017}
+      MONGODB_URL: mongodb://mongo:27017
       MONGODB_DB: ${MONGODB_DB:-talentlens}
       MODEL_PATH: /workspace/data/models/model.pkl
       VECTORIZER_PATH: /workspace/data/models/vectorizer.pkl
       CHROMA_PERSIST_DIRECTORY: /workspace/data/vector_db/chroma
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
+      UPLOAD_DIR: /workspace/data/uploads
+      EXPORT_DIR: /workspace/data/exports
+      CACHE_DIR: /workspace/data/cache
       SKIP_HF_DATASET: "1"
     volumes:
       - .:/workspace

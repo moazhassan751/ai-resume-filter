@@ -9,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 import joblib
 
+from app.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 _MODEL = None
@@ -38,8 +40,8 @@ def load_model(path: Optional[str] = None) -> Any:
         if _MODEL is not None:  # re-check after acquiring lock
             return _MODEL
 
-        model_path = Path(path or os.environ.get("MODEL_PATH", "./data/models/model.pkl"))
-        vec_path = Path(os.environ.get("VECTORIZER_PATH", "./data/models/vectorizer.pkl"))
+        model_path = Path(path or os.environ.get("MODEL_PATH") or settings.MODEL_PATH)
+        vec_path = Path(os.environ.get("VECTORIZER_PATH") or settings.VECTORIZER_PATH)
 
         if not model_path.exists():
             raise FileNotFoundError(
@@ -69,7 +71,7 @@ def get_vectorizer(path: Optional[str] = None) -> Any:
         if _VECTORIZER is not None:
             return _VECTORIZER
 
-        vec_path = Path(path or os.environ.get("VECTORIZER_PATH", "./data/models/vectorizer.pkl"))
+        vec_path = Path(path or os.environ.get("VECTORIZER_PATH") or settings.VECTORIZER_PATH)
         if not vec_path.exists():
             raise FileNotFoundError(
                 f"Vectorizer file not found: {vec_path}. Run train_model.py first."

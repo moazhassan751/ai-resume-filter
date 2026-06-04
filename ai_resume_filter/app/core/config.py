@@ -7,6 +7,19 @@ from __future__ import annotations
 from typing import List, Optional
 
 from pydantic import AliasChoices, Field
+from dotenv import load_dotenv
+from pathlib import Path
+
+_HERE = Path(__file__).resolve().parent
+_PROJECT_ROOT = _HERE.parents[1]
+
+# Load .env into os.environ for non-Pydantic config usage
+for env_dir in [Path.cwd(), _PROJECT_ROOT / "ai_resume_filter", _PROJECT_ROOT]:
+    env_file = env_dir / ".env"
+    if env_file.exists():
+        load_dotenv(dotenv_path=env_file)
+        break
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -24,7 +37,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     # Hosts allowed to serve traffic (TrustedHost middleware). Keep tight in prod.
-    ALLOWED_HOSTS: List[str] = ["localhost"]
+    # Include `testserver` to support FastAPI TestClient in tests.
+    ALLOWED_HOSTS: List[str] = ["localhost", "testserver"]
     # CORS origins (frontend domains). Keep tight in prod.
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000"]
 
@@ -60,7 +74,7 @@ class Settings(BaseSettings):
     # Whether to enforce strict startup validation (set False for some test runners)
     STRICT_STARTUP_CHECKS: bool = True
 
-    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True)
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
 
 
 settings = Settings()

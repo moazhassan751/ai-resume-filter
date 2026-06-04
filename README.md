@@ -1,187 +1,162 @@
 # TalentLens AI (AI Resume Filter)
 
-An AI-powered resume intelligence platform with a FastAPI backend and a Next.js frontend. It classifies resumes, computes ATS-style scores, performs semantic search with ChromaDB, and provides recruiter analytics dashboards. Optional CrewAI agents and Gemini-powered RAG add multi-agent reasoning and ranking.
+An AI-powered resume intelligence platform featuring a FastAPI backend and a Next.js frontend. It performs resume classification, computes ATS-style suitability scores, runs semantic candidate search with ChromaDB, and displays a comprehensive recruiter analytics dashboard. Optional CrewAI agents and Gemini-powered RAG add multi-agent reasoning, bias detection, and candidate ranking.
 
-## Highlights
+---
 
-- FastAPI backend with JWT auth, rate limiting, and security middleware
-- Next.js frontend with analytics, uploads, and explainability panels
-- Semantic search via sentence-transformer embeddings + ChromaDB
-- OCR-aware resume parsing for PDF, DOCX, and image resumes
-- ATS scoring and ranking with explainable signals
-- Multi-agent analysis (CrewAI) with safe fallbacks
-- Async model training with Celery + Redis
-- Observability hooks: Prometheus, Grafana, optional Sentry + OpenTelemetry
+## Technical Highlights
 
-## Architecture
+- **FastAPI Backend**: Clean architecture with JWT OAuth2 authentication, rate limiting, and robust security middleware.
+- **Next.js Frontend**: Responsive Glassmorphism design featuring recruiter dashboards, upload dropzones, and model explainability panels.
+- **Semantic Candidate Search**: Dense vectors generated using `all-MiniLM-L6-v2` transformer and stored in a local persistent ChromaDB collection.
+- **OCR-Aware Document Parser**: Extracts text from PDF, DOCX, and images with automatic fallback to PyTesseract OCR when scanned PDF resumes are uploaded.
+- **Explainable ATS Scoring**: Multi-signal scoring engine combining semantic similarity, keyword overlap, skill matching, education levels, and experience.
+- **Multi-Agent Evaluation**: Optional CrewAI agent pipelines for in-depth resume summarization, skill gap analysis, and linguistic bias flagging.
+- **Async Processing**: Decoupled baseline model training via Celery workers with a Redis message broker.
+- **Observability Stack**: Built-in endpoints for Prometheus, Grafana, optional Sentry error tracking, and OpenTelemetry instrumentation.
 
-- Backend: FastAPI (`ai_resume_filter/app`)
-- Frontend: Next.js (`frontend`)
-- Vector store: ChromaDB (local persistent directory)
-- Persistence: MongoDB (users, metrics, history), optional Postgres
-- Background jobs: Celery workers with Redis broker
-- Monitoring: Prometheus + Grafana
+---
 
-## Quick Start (Local)
+## System Architecture
 
-### 1) Backend (FastAPI)
-
-```bash
-python -m venv venv
-venv\Scripts\activate
-pip install -r ai_resume_filter/requirements.txt
-copy ai_resume_filter\.env.example .env
-
-# Start the API
-cd ai_resume_filter
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+```mermaid
+graph TD
+    User[Recruiter / Web App Client] -->|React Next.js| FE[Frontend Server :3500]
+    FE -->|HTTP API / JWT| BE[FastAPI Backend :8000]
+    BE -->|Read/Write Metadata| DB[(MongoDB)]
+    BE -->|Index & Query| VectorDB[(ChromaDB)]
+    BE -->|Dispatch Jobs| Broker[Redis Broker]
+    Broker --> Worker[Celery Worker]
+    Worker -->|Read CSV / Train Models| BE
+    Worker -->|Save pkl Artifacts| Storage[Local Storage /data/models]
 ```
 
-### 2) Frontend (Next.js)
+---
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+## Quick Start (Local Development)
 
-Open:
-- API: http://127.0.0.1:8000
-- Frontend: http://localhost:3000
+### Prerequisites
+Make sure you have the following services running locally:
+- **MongoDB** running on `mongodb://localhost:27017`
+- **Redis** running on `redis://localhost:6379`
 
-## Docker (Dev and Prod)
+---
 
-This repo ships a multi-service Compose stack with `dev` and `prod` profiles.
+### 1) Backend Service (FastAPI)
 
-### Development profile
+1. **Set up the virtual environment and dependencies**:
+   ```bash
+   python -m venv venv
+   venv\Scripts\activate
+   pip install -r ai_resume_filter/requirements.txt
+   ```
 
+2. **Configure environment variables**:
+   Copy the example file to `.env`:
+   ```bash
+   copy ai_resume_filter\.env.example ai_resume_filter\.env
+   ```
+   *Verify that `MODEL_PATH` and `VECTORIZER_PATH` point correctly to the relative paths (`../data/models/model.pkl` and `../data/models/vectorizer.pkl` respectively).*
+
+3. **Start the API Server**:
+   ```bash
+   cd ai_resume_filter
+   python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+   ```
+   *The API will be available at: http://127.0.0.1:8000*
+
+4. **Start the Celery Background Worker**:
+   Open a separate terminal window and run:
+   ```bash
+   cd ai_resume_filter
+   venv\Scripts\activate
+   python -m celery -A app.core.celery_app.celery_app worker -l info -P solo
+   ```
+   *The `-P solo` pool flag is required for correct execution on Windows systems.*
+
+---
+
+### 2) Frontend Service (Next.js)
+
+1. **Install and launch the dev server**:
+   ```bash
+   cd frontend
+   npm install
+   npm run dev -- -p 3500
+   ```
+   *Note: Port `3500` is used by default because Windows systems reserve standard ports in the `2914-3413` range, causing conflict on port `3000`.*
+
+2. **Open the App**:
+   Navigate to **`http://localhost:3500`** in your browser.
+
+---
+
+## Docker Stack Execution
+
+You can run the entire platform within Docker containers using the provided multi-profile Compose file.
+
+### Development Environment (Hot-Reloading)
 ```bash
 docker compose --profile dev up --build
 ```
+*Launches: `backend-dev` (FastAPI with reload), `frontend-dev` (Next.js on port 3001), `worker-dev` (Celery), `mongo`, and `redis`.*
 
-Services:
-- `backend-dev` (FastAPI with reload)
-- `frontend-dev` (Next.js dev)
-- `worker-dev` (Celery worker)
-- `mongo`, `redis`
-
-### Production profile
-
+### Production Environment
 ```bash
 copy .env.production.example .env.production
-# edit .env.production with secrets
-
+# Edit credentials in .env.production
 docker compose --profile prod --env-file .env.production up --build
 ```
+*Launches: `backend` (production Gunicorn), `frontend` (Next.js built), `worker`, `mongo`, `redis`, `postgres`, `prometheus`, `grafana`, `celery-exporter`, and `flower`.*
 
-Services:
-- `backend` (Gunicorn + Uvicorn workers)
-- `frontend` (Next.js production build)
-- `worker` (Celery)
-- `mongo`, `redis`, `postgres`
-- `prometheus`, `grafana`, `celery-exporter`, `flower`
+---
 
-## API Overview
+## Offline Data Pipelines & Scripts
 
-Base URL: `/api/v1`
+You can execute offline scripts for dataset preparation, indexing, or manual training from the `ai_resume_filter` directory:
 
-### Auth
-- `POST /api/v1/auth/register`
-- `POST /api/v1/auth/token`
+1. **Inventory Datasets**: Inspects all available CSV, Excel, PDF, and HuggingFace sources:
+   ```bash
+   python scripts/inventory_datasets.py
+   ```
+2. **Normalize Data**: Deduplicates and unifies all dataset schemas into a combined file:
+   ```bash
+   python scripts/normalize_datasets.py
+   ```
+3. **Build Task Datasets**: Creates model-specific CSV datasets under `data/cache/tasks/`:
+   ```bash
+   python scripts/data_pipeline.py
+   ```
+4. **Offline Model Training**: Trains the TF-IDF classifiers on the normalized dataset:
+   ```bash
+   python scripts/train_model.py
+   ```
+5. **ChromaDB Indexing**: Embeds the RAG corpus and populates ChromaDB:
+   ```bash
+   python scripts/index_embeddings.py
+   ```
 
-### Data + Uploads
-- `GET /api/v1/data/status`
-- `GET /api/v1/data/datasets`
-- `GET /api/v1/data/statistics`
-- `POST /api/v1/data/upload`
-- `POST /api/v1/data/intelligence`
-- `POST /api/v1/data/ats/score`
-- `GET /api/v1/data/history`
-
-### Search + RAG
-- `POST /api/v1/search/semantic`
-- `POST /api/v1/rag/analyze`
-
-### Ranking
-- `POST /api/v1/ranking/rank-candidates`
-
-### Analytics + Explainability
-- `GET /api/v1/analytics/dashboard`
-- `GET /api/v1/analytics/recruiter-insights`
-- `POST /api/v1/analytics/explain`
-
-### Model + Training
-- `GET /api/v1/model/load`
-- `POST /api/v1/model/predict`
-- `POST /api/v1/model/train-async`
-- `GET /api/v1/model/train-status/{task_id}`
-- `GET /api/v1/model/report`
-- `GET /api/v1/model/metrics`
-- `POST /api/v1/model/metrics`
-
-### Health and Metrics
-- `GET /health`
-- `GET /live`
-- `GET /ready`
-- `GET /metrics`
-
-## Data Pipeline and Scripts
-
-The project includes dataset utilities and normalization scripts:
-
-```bash
-python ai_resume_filter/scripts/inventory_datasets.py
-python ai_resume_filter/scripts/normalize_datasets.py
-python ai_resume_filter/scripts/data_pipeline.py
-python ai_resume_filter/scripts/train_model.py
-python ai_resume_filter/scripts/index_embeddings.py
-```
-
-`services/data_service.py` loads multiple datasets at startup, including:
-- `resume_data.csv`
-- `Resume/Resume.csv`
-- `resumes_dataset.jsonl`
-- CareerCorpus (Excel)
-- Resume PDFs by category
-- Optional HuggingFace dataset (`ahmedheakl/resume-atlas`)
-
-Set `SKIP_HF_DATASET=1` to avoid pulling HF datasets.
-
-## Environment Variables
-
-See the templates:
-- `ai_resume_filter/.env.example` (local)
-- `.env.production.example` (production)
-
-Key variables:
-- `SECRET_KEY` (required in production)
-- `MONGODB_URL`, `MONGODB_DB`
-- `CHROMA_PERSIST_DIRECTORY`
-- `MODEL_PATH`, `VECTORIZER_PATH`
-- `UPLOAD_DIR`, `EXPORT_DIR`, `CACHE_DIR`
-- `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY`
-- `CREWAI_PROVIDER`, `CREWAI_MODEL`, `CREWAI_TASK_TIMEOUT`
-- `CELERY_BROKER_URL`, `CELERY_RESULT_BACKEND`
+---
 
 ## Testing
 
-```bash
-cd ai_resume_filter
-pytest
-```
+Run tests locally using:
+- **Backend Tests**:
+  ```bash
+  cd ai_resume_filter
+  pytest
+  ```
+- **Frontend Tests**:
+  ```bash
+  cd frontend
+  npm run test
+  ```
 
-CI sets `CREWAI_MOCK_MODE=1` and `EMBEDDING_MOCK_MODE=1` to avoid model downloads.
+---
 
-## Monitoring
+## Monitoring Links (Docker Profile)
 
-- Prometheus: `http://localhost:9090`
-- Grafana: `http://localhost:3001` (admin/admin by default)
-- Flower (Celery UI): `http://localhost:5555`
-
-## Security Notes
-
-See [docs/SECURITY.md](docs/SECURITY.md) and [docs/SECRETS.md](docs/SECRETS.md) for hardening guidance, secret rotation, and recommended production controls.
-
-## License
-
-MIT License
+- **Flower (Celery dashboard)**: `http://localhost:5555`
+- **Prometheus (Metrics storage)**: `http://localhost:9090`
+- **Grafana (Dashboards)**: `http://localhost:3001` *(Default login: admin / admin)*
+- **API Documentation**: `http://127.0.0.1:8000/docs`

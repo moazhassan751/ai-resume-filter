@@ -55,10 +55,10 @@ async def create_user(
     }
 
     try:
-        await db.users.insert_one(doc)
+        result = await db.users.insert_one(doc)
     except DuplicateKeyError:
         logger.warning("Registration attempted for existing email: %s", normalised_email)
         raise UserAlreadyExistsError(f"Email already registered: {normalised_email}")
 
     # Return a clean response — never expose _id or hashed_password
-    return {"email": normalised_email, "full_name": full_name}
+    return {"id": str(result.inserted_id), "email": normalised_email, "full_name": full_name}

@@ -21,6 +21,7 @@ except Exception:  # pragma: no cover
 
 from app.services.model_service import get_vectorizer, load_model, predict
 from services.data_service import get_data_service
+from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -326,7 +327,12 @@ async def build_classification_report() -> Dict[str, Any]:
     if not data_service.loaded:
         await data_service.initialize()
 
-    split = await data_service.get_training_split()
+    try:
+        split = await data_service.get_training_split()
+    except Exception as exc:
+        logger.warning("Could not generate training split: %s", exc)
+        return {"error": "Training data unavailable"}
+
     records = [data_service.normalize_resume(item) for item in split["test"]]
     rows = [row for row in records if row.get("text") and row.get("category")]
     if not rows:

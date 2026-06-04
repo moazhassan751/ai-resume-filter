@@ -40,7 +40,11 @@ async def predict(req: PredictRequest, current_user=Depends(get_current_user)):
 
 @router.post("/train-async", response_model=TrainingRunResponse)
 async def train_async(current_user=Depends(get_current_user)) -> TrainingRunResponse:
-    task = train_baseline_task.delay()
+    from kombu.exceptions import OperationalError
+    try:
+        task = train_baseline_task.delay()
+    except OperationalError:
+        raise HTTPException(status_code=503, detail="Task queue unavailable. Redis is not reachable.")
     return TrainingRunResponse(task_id=task.id)
 
 

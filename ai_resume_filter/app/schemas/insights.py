@@ -61,7 +61,7 @@ class AgentAnalysisResponse(BaseModel):
     skill_gaps: List[str]
     bias_flags: List[str]
     hiring_recommendation: str
-    crew_output: Optional[str] = None
+    crew_output: Optional[Any] = None
 
 
 class ClassificationReportResponse(BaseModel):
