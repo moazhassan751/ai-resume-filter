@@ -195,3 +195,24 @@ async def candidate_history(limit: int = 25, current_user=Depends(get_current_us
         ]
 
     return {"items": items}
+
+
+@router.get("/history/{candidate_id}")
+async def get_candidate_details(candidate_id: str, current_user=Depends(get_current_user)) -> Dict[str, Any]:
+    try:
+        db = get_db() if get_db else None
+        if db is not None:
+            item = await db.candidate_history.find_one({"candidate_id": candidate_id})
+            if item:
+                item.pop("_id", None)
+                return item
+    except Exception as exc:
+        logger.error("Failed to fetch candidate details: %s", exc)
+        raise HTTPException(status_code=500, detail=str(exc))
+
+    for record in _HISTORY_CACHE:
+        if record.get("candidate_id") == candidate_id:
+            return record
+
+    raise HTTPException(status_code=404, detail="Candidate not found")
+

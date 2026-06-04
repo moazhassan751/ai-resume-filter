@@ -8,7 +8,9 @@ An AI-powered resume intelligence platform featuring a FastAPI backend and a Nex
 
 - **FastAPI Backend**: Clean architecture with JWT OAuth2 authentication, rate limiting, and robust security middleware.
 - **Next.js Frontend**: Responsive Glassmorphism design featuring recruiter dashboards, upload dropzones, and model explainability panels.
-- **Semantic Candidate Search**: Dense vectors generated using `all-MiniLM-L6-v2` transformer and stored in a local persistent ChromaDB collection.
+- **Semantic Candidate Search (`/search`)**: Dense vectors generated using `all-MiniLM-L6-v2` transformer and stored in a local persistent ChromaDB collection. Features search explanation overlap heuristics.
+- **Multi-Candidate Ranking (`/ranking`)**: Ranks shortlists side-by-side based on weighted metrics: semantic similarity (40%), ATS keyword match (25%), skill overlap (20%), experience (10%), and education (5%).
+- **RAG Recruiter Assistant (`/rag`)**: Conversational chat interface grounded in ChromaDB resumes utilizing Gemini (`gemini-1.5-flash`) with prompt-token budgeting and heuristic fallbacks.
 - **OCR-Aware Document Parser**: Extracts text from PDF, DOCX, and images with automatic fallback to PyTesseract OCR when scanned PDF resumes are uploaded.
 - **Explainable ATS Scoring**: Multi-signal scoring engine combining semantic similarity, keyword overlap, skill matching, education levels, and experience.
 - **Multi-Agent Evaluation**: Optional CrewAI agent pipelines for in-depth resume summarization, skill gap analysis, and linguistic bias flagging.
@@ -144,7 +146,8 @@ Run tests locally using:
 - **Backend Tests**:
   ```bash
   cd ai_resume_filter
-  pytest
+  # Run the full integration audit suite
+  python -m pytest tests/test_full_audit.py
   ```
 - **Frontend Tests**:
   ```bash

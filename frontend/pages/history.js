@@ -39,8 +39,12 @@ export default function HistoryPage() {
           title="Candidate History"
           links={[
             { href: '/dashboard', label: 'Dashboard' },
-            { href: '/analytics', label: 'Analytics' },
             { href: '/upload', label: 'Upload' },
+            { href: '/search', label: 'Search' },
+            { href: '/ranking', label: 'Ranking' },
+            { href: '/rag', label: 'AI Assistant' },
+            { href: '/analytics', label: 'Analytics' },
+            { href: '/history', label: 'History' },
           ]}
           onLogout={() => { logout(); router.push('/login') }}
         />

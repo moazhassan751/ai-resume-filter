@@ -76,8 +76,12 @@ export default function Dashboard() {
         <ResponsiveHeader
           title="Recruitment Intelligence Dashboard"
           links={[
-            { href: '/analytics', label: 'Analytics' },
+            { href: '/dashboard', label: 'Dashboard' },
             { href: '/upload', label: 'Upload' },
+            { href: '/search', label: 'Search' },
+            { href: '/ranking', label: 'Ranking' },
+            { href: '/rag', label: 'AI Assistant' },
+            { href: '/analytics', label: 'Analytics' },
             { href: '/history', label: 'History' },
           ]}
           onLogout={handleLogout}
